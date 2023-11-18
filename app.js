@@ -1,77 +1,73 @@
+const path = require('path');
 const express = require('express');
 const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
-const session = require('express-session');
-const MongoDBStore = require('connect-mongodb-session')(session);
-const csrf = require('csurf');
+const multer = require('multer');
+const corsMiddleware = require('./middleware/cors');
+const helmet = require('helmet');
+const compression = require('compression');
+const morgan = require('morgan');
+require('dotenv').config(); // Load environment variables from .env file
 
-const User = require('./models/user');
-
-const MONGODB_URI =
-  'mongodb+srv://mustafaozkandev:<password>@phrasepilot-dev-cluster.2wn9emu.mongodb.net/phrase-pilot';
-
-const app = express();
-const store = new MongoDBStore({
-  uri: MONGODB_URI,
-  collection: 'sessions'
-});
-const csrfProtection = csrf();
-
-const adminRoutes = require('./routes/admin');
 const wordRoutes = require('./routes/word');
 const authRoutes = require('./routes/auth');
 
-app.use(bodyParser.json()); // Parse JSON requests
-app.use(
-  session({
-    secret: 'pTcwaTD9aX',
-    resave: false,
-    saveUninitialized: false,
-    store: store
-  })
-);
-app.use(csrfProtection);
+const app = express();
 
-app.use((req, res, next) => {
-  res.locals.isAuthenticated = req.session.isLoggedIn;
-  res.locals.csrfToken = req.csrfToken();
-  next();
-});
-
-app.use((req, res, next) => {
-  if (!req.session.user) {
-    return next();
+// Multer configuration for file storage
+const fileStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'images');
+  },
+  filename: (req, file, cb) => {
+    cb(null, new Date().toISOString() + '-' + file.originalname);
   }
-  User.findById(req.session.user._id)
-    .then((user) => {
-      if (!user) {
-        return next();
-      }
-      req.user = user;
-      next();
-    })
-    .catch((err) => {
-      next(new Error(err));
-    });
 });
 
-app.use('/admin', adminRoutes);
-app.use(wordRoutes);
-app.use(authRoutes);
+// Multer file filter for image types
+const fileFilter = (req, file, cb) => {
+  if (
+    file.mimetype === 'image/png' ||
+    file.mimetype === 'image/jpg' ||
+    file.mimetype === 'image/jpeg'
+  ) {
+    cb(null, true);
+  } else {
+    cb(null, false);
+  }
+};
 
+app.use(morgan('dev')); // Morgan for request logging
+
+app.use(helmet()); // Helmet for securing HTTP headers
+app.use(compression()); // Compression middleware for response compression
+
+app.use(corsMiddleware); // CORS middleware for handling Cross-Origin Resource Sharing
+
+app.use(bodyParser.json()); // Body parser for parsing JSON requests
+app.use(multer({ storage: fileStorage, fileFilter: fileFilter }).single('image')); // Multer middleware for file uploads
+app.use('/images', express.static(path.join(__dirname, 'images'))); // Serve static images
+
+app.use(wordRoutes); // Word routes
+app.use('/auth', authRoutes); // Authentication routes
+
+// Error handling middleware
 app.use((error, req, res, next) => {
   console.error(error);
-  res.status(500).json({ error: 'Internal Server Error' });
+  const status = error.statusCode || 500;
+  const message = error.message;
+  const data = error.data;
+  res.status(status).json({ message: message, data: data });
 });
 
 mongoose
-  .connect(MONGODB_URI)
+  .connect(
+    `mongodb+srv://${process.env.MONGODB_USERNAME}:${process.env.MONGODB_PASSWORD}${process.env.MONGODB_URI}`
+  )
   .then((result) => {
-    app.listen(3000, () => {
-      console.log('Server is running on port 3000');
+    const port = process.env.PORT || 8080;
+    app.listen(port, () => {
+      console.log(`Server is running on port ${port}`);
     });
   })
-  .catch((err) => {
-    console.error('Error connecting to MongoDB:', err);
-    process.exit(1); // Exit the process if unable to connect to MongoDB
-  });
+  .catch((err) => console.error(err));

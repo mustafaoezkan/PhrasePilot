@@ -1,63 +1,33 @@
 const express = require('express');
-const { check, body } = require('express-validator/check');
+const { body } = require('express-validator');
 
-const authController = require('../controllers/auth');
 const User = require('../models/user');
+const authController = require('../controllers/auth');
 
 const router = express.Router();
 
-router.post(
-  '/login',
-  [
-    body('email')
-      .isEmail()
-      .withMessage('Please enter a valid email address.')
-      .normalizeEmail(),
-    body('password', 'Password has to be valid.')
-      .isLength({ min: 5 })
-      .isAlphanumeric()
-      .trim()
-  ],
-  authController.login
-);
-
-router.post(
+// PUT /signup - Route to handle user signup
+router.put(
   '/signup',
   [
-    check('email')
+    body('email')
       .isEmail()
       .withMessage('Please enter a valid email.')
       .custom((value, { req }) => {
         return User.findOne({ email: value }).then((userDoc) => {
           if (userDoc) {
-            return Promise.reject('E-Mail exists already, please pick a different one.');
+            return Promise.reject('E-Mail address already exists!');
           }
         });
       })
       .normalizeEmail(),
-    body(
-      'password',
-      'Please enter a password with only numbers and text and at least 5 characters.'
-    )
-      .isLength({ min: 5 })
-      .isAlphanumeric()
-      .trim(),
-    body('confirmPassword')
-      .trim()
-      .custom((value, { req }) => {
-        if (value !== req.body.password) {
-          throw new Error('Passwords have to match!');
-        }
-        return true;
-      })
+    body('password').trim().isLength({ min: 5 }), // Validation for password
+    body('name').trim().not().isEmpty() // Validation for name
   ],
   authController.signup
 );
 
-router.post('/logout', authController.logout);
-
-router.post('/reset', authController.resetPassword);
-
-router.post('/new-password', authController.newPassword);
+// POST /login - Route to handle user login
+router.post('/login', authController.login);
 
 module.exports = router;
