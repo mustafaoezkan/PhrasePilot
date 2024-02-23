@@ -1,8 +1,7 @@
 const express = require('express');
 const { body } = require('express-validator');
-
-const User = require('../models/user');
 const authController = require('../controllers/auth');
+const User = require('../models/user');
 
 const router = express.Router();
 
@@ -14,8 +13,8 @@ router.put(
       .isEmail()
       .withMessage('Please enter a valid email.')
       .custom((value, { req }) => {
-        return User.findOne({ email: value }).then((userDoc) => {
-          if (userDoc) {
+        return User.findOne({ where: { email: value } }).then((user) => {
+          if (user) {
             return Promise.reject('E-Mail address already exists!');
           }
         });

@@ -12,21 +12,22 @@ exports.signup = (req, res, next) => {
     error.data = errors.array();
     throw error;
   }
+
   const email = req.body.email;
   const name = req.body.name;
   const password = req.body.password;
+
   bcrypt
     .hash(password, 12)
     .then((hashedPw) => {
-      const user = new User({
+      return User.create({
         email: email,
         password: hashedPw,
         name: name
       });
-      return user.save();
     })
     .then((result) => {
-      res.status(201).json({ message: 'User created!', userId: result._id });
+      res.status(201).json({ message: 'User created!', userId: result.id });
     })
     .catch((err) => {
       if (!err.statusCode) {
@@ -39,15 +40,18 @@ exports.signup = (req, res, next) => {
 exports.login = (req, res, next) => {
   const email = req.body.email;
   const password = req.body.password;
-  let loadedUser;
-  User.findOne({ email: email })
+  let foundUser; // Define a variable to capture the user
+
+  User.findOne({ where: { email: email } })
     .then((user) => {
       if (!user) {
         const error = new Error('A user with this email could not be found.');
         error.statusCode = 401;
         throw error;
       }
-      loadedUser = user;
+
+      foundUser = user; // Capture the user in the outer scope
+
       return bcrypt.compare(password, user.password);
     })
     .then((isEqual) => {
@@ -56,15 +60,17 @@ exports.login = (req, res, next) => {
         error.statusCode = 401;
         throw error;
       }
+
       const token = jwt.sign(
         {
-          email: loadedUser.email,
-          userId: loadedUser._id.toString()
+          email: foundUser.email,
+          userId: foundUser.id.toString()
         },
         process.env.JWT_SECRET,
         { expiresIn: '1h' }
       );
-      res.status(200).json({ token: token, userId: loadedUser._id.toString() });
+
+      res.status(200).json({ token: token, userId: foundUser.id.toString() });
     })
     .catch((err) => {
       if (!err.statusCode) {

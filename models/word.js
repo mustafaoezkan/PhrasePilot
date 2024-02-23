@@ -1,29 +1,15 @@
-const mongoose = require('mongoose');
-const Schema = mongoose.Schema;
+const { DataTypes } = require('sequelize');
+const sequelize = require('../config/database');
 
-// Define the Word schema
-const wordSchema = new Schema(
-  {
-    term: {
-      type: String,
-      required: true
-    },
-    imageUrl: {
-      type: String,
-      required: true
-    },
-    definition: {
-      type: String,
-      required: true
-    },
-    creator: {
-      type: Schema.Types.ObjectId,
-      ref: 'User', // Reference to the User model
-      required: true
-    }
+const Word = sequelize.define('Word', {
+  term: {
+    type: DataTypes.STRING,
+    allowNull: false
   },
-  { timestamps: true } // Adds createdAt and updatedAt timestamps
-);
+  definition: {
+    type: DataTypes.STRING,
+    allowNull: false
+  }
+});
 
-// Create and export the Word model
-module.exports = mongoose.model('Word', wordSchema);
+module.exports = Word;
