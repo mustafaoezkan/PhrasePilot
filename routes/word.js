@@ -10,8 +10,10 @@ router.post(
   '/word',
   isAuth,
   [
-    body('term').trim().isLength({ min: 1 }),
-    body('definition').trim().isLength({ min: 5 })
+    body('word_name').trim().isLength({ min: 1 }),
+    body('word_form').trim().isLength({ min: 1 }),
+    body('word_meaning').trim().isLength({ min: 3 }),
+    body('word_usage').trim().isLength({ min: 3 })
   ],
   wordController.createWord
 );
@@ -22,8 +24,10 @@ router.put(
   '/word/:wordId',
   isAuth,
   [
-    body('term').trim().isLength({ min: 1 }),
-    body('definition').trim().isLength({ min: 5 })
+    body('word_name').trim().isLength({ min: 1 }),
+    body('word_form').trim().isLength({ min: 1 }),
+    body('word_meaning').trim().isLength({ min: 3 }),
+    body('word_usage').trim().isLength({ min: 3 })
   ],
   wordController.updateWord
 );

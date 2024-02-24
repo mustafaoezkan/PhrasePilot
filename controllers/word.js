@@ -33,19 +33,23 @@ exports.createWord = (req, res, next) => {
     throw error;
   }
 
-  const term = req.body.term;
-  const definition = req.body.definition;
+  const word_name = req.body.word_name;
+  const word_form = req.body.word_form;
+  const word_meaning = req.body.word_meaning;
+  const word_usage = req.body.word_usage;
 
   Word.create({
-    term: term,
-    definition: definition,
-    userId: req.userId
+    word_name: word_name,
+    word_form: word_form,
+    word_meaning: word_meaning,
+    word_usage: word_usage,
+    creator: req.userId
   })
     .then((result) => {
       res.status(201).json({
         message: 'Word created successfully!',
         word: result,
-        creator: { _id: req.userId, name: 'YourName' } // Adjust with actual user data
+        creator: req.userId
       });
     })
     .catch((err) => {
@@ -85,8 +89,10 @@ exports.updateWord = (req, res, next) => {
     throw error;
   }
 
-  const term = req.body.term;
-  const definition = req.body.definition;
+  const word_name = req.body.word_name;
+  const word_form = req.body.word_form;
+  const word_meaning = req.body.word_meaning;
+  const word_usage = req.body.word_usage;
 
   Word.findByPk(wordId)
     .then((word) => {
@@ -96,14 +102,16 @@ exports.updateWord = (req, res, next) => {
         throw error;
       }
 
-      if (word.userId !== req.userId) {
+      if (word.creator.toString() !== req.userId) {
         const error = new Error('Not authorized!');
         error.statusCode = 403;
         throw error;
       }
 
-      word.term = term;
-      word.definition = definition;
+      word.word_name = word_name;
+      word.word_form = word_form;
+      word.word_meaning = word_meaning;
+      word.word_usage = word_usage;
       return word.save();
     })
     .then((result) => {
@@ -128,19 +136,13 @@ exports.deleteWord = (req, res, next) => {
         throw error;
       }
 
-      if (word.userId !== req.userId) {
+      if (word.creator.toString() !== req.userId) {
         const error = new Error('Not authorized!');
         error.statusCode = 403;
         throw error;
       }
 
       return word.destroy();
-    })
-    .then(() => {
-      return User.findByPk(req.userId);
-    })
-    .then((user) => {
-      return user.removeWord(wordId);
     })
     .then(() => {
       res.status(200).json({ message: 'Deleted word.' });
