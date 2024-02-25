@@ -1,10 +1,9 @@
 const { validationResult } = require('express-validator');
 const Word = require('../models/word');
-const User = require('../models/user');
 
 exports.getWords = (req, res, next) => {
   const currentPage = req.query.page || 1;
-  const perPage = 2;
+  const perPage = 10;
 
   Word.findAndCountAll({
     offset: (currentPage - 1) * perPage,
